@@ -5,6 +5,7 @@ Created on January 21 2018
 '''
 import random
 import math
+from test.test_itertools import gen3
 
 class Solver_8_queens:
     '''
@@ -12,6 +13,8 @@ class Solver_8_queens:
     '''
     def __init__(self, pop_size=100, cross_prob=0.95, mut_prob=0.25):
         self.n = 8
+        self.nbit = 24
+        self.m = 3
         self.pop_size = pop_size
         self.cross_prob = cross_prob
         self.mut_prob = mut_prob
@@ -52,7 +55,8 @@ class Solver_8_queens:
         return max_fitness, epochs, self.visualization(self.population[max_index])
     
     
-    def visualization(self, chrom):
+    def visualization(self, chrom2):
+        chrom = self.convertToDec(chrom2)
         s = ''
         for i in range(self.n):
             for j in range(self.n):
@@ -64,19 +68,26 @@ class Solver_8_queens:
             s += '\n'
         return s
     
-    def generate_chrom(self):            
-        return random.sample(range(self.n), self.n)
+    def generate_chrom(self):      
+        s = ''
+        for i in range(self.nbit):
+            s += str(random.randint(0,1))     
+        return s
             
     # Find a number of attacked pairs of Queens 
-    def fitness(self, chrom): 
+    def fitness(self, chrom2): 
+        chrom = self.convertToDec(chrom2)
         res = 0
         for i in range(self.n):
             gen = chrom[i]
             j = i + 1
             while j < self.n:
                 # Check lines
-                if chrom[j] == gen:
-                    res += 1
+                try:
+                    if chrom[j] == gen:
+                        res += 1
+                except IndexError:
+                    print()
                 # Check diagonal
                 if (j - i) == math.fabs(chrom[j] - chrom[i]):
                     res += 1
@@ -104,10 +115,10 @@ class Solver_8_queens:
         pairs = random.sample(range(len(cross_pop)), len(cross_pop))
         for i in range(0, len(cross_pop)-1, 2):
             if random.random() <= self.cross_prob:
-                chrom1 = list.copy(cross_pop[pairs[i]])
-                chrom2 = list.copy(cross_pop[pairs[i+1]])
-                k = random.randint(1, self.n - 1)
-                new_chrom1 = list.copy(chrom1[0:k]) + list.copy(chrom2[k:len(chrom2)])
+                chrom1 = cross_pop[pairs[i]]
+                chrom2 = cross_pop[pairs[i+1]]
+                k = random.randint(1, len(chrom1) - 1)
+                new_chrom1 = chrom1[0:k] + chrom2[k:len(chrom2)]
                 new_population.append(new_chrom1)
 
         return new_population
@@ -118,13 +129,15 @@ class Solver_8_queens:
         for i in range(len(pop)):
             if random.random() <= self.mut_prob:
             #if False:
-                chrom = list.copy(pop[i])
-                r = random.sample(range(self.n), 2)
-                swap1 = chrom[r[0]]
-                swap2 = chrom[r[1]]
-                chrom[r[0]] = swap2
-                chrom[r[1]] = swap1
-                new_pop.append(chrom)
+                chrom = pop[i]
+                r = random.randint(0, self.nbit - 1)
+                gen = chrom[r]
+                new_gen = '0'
+                if gen == '0':
+                    new_gen = '1'
+                new_chrom = chrom[0 : r] + new_gen + chrom[r + 1 : len(chrom)]
+                
+                new_pop.append(new_chrom)
         return new_pop
           
     # Make a new population based on the old and new chromosomes
@@ -145,4 +158,22 @@ class Solver_8_queens:
         for i in range(self.pop_size):
             self.population.append(self.generate_chrom())
             self.fitness_list.append(self.fitness(self.population[i]))
+            
+    def convertToBin(self, chrom):
+        s=''
+        for i in range(len(chrom)):
+            gen = str(bin(chrom[i]))[2:]
+            while len(gen) < 3:
+                gen = '0' + gen
+            s += gen
+        return s
+            
+    def convertToDec(self, s):
+        chrom = list()
+        for i in range(0, len(s), self.m):
+            gen = int(s[i:i+self.m], 2)
+            chrom.append(gen)
+            
+        return chrom
+            
             
