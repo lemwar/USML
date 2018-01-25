@@ -4,12 +4,13 @@ Created on January 21 2018
 @author: kkostin
 '''
 import random
+import math
 
 class Solver_8_queens:
     '''
     classdocs
     '''
-    def __init__(self, pop_size=150, cross_prob=0.95, mut_prob=0.25):
+    def __init__(self, pop_size=100, cross_prob=0.95, mut_prob=0.25):
         self.n = 8
         self.pop_size = pop_size
         self.cross_prob = cross_prob
@@ -26,6 +27,7 @@ class Solver_8_queens:
         epochs = 0
         max_fitness = max(self.fitness_list)
         max_index = self.fitness_list.index(max(self.fitness_list))
+        #while False:
         while (max_epochs is None or epochs <= max_epochs) and (min_fitness is None or max_fitness < min_fitness):
 
             # Roulette method
@@ -52,111 +54,35 @@ class Solver_8_queens:
     
     def visualization(self, chrom):
         s = ''
-        for i in range(len(chrom)):
-            for j in range(len(chrom)):
-                if (chrom[i][j] == 0):
-                    s += '+'
-                else:
+        for i in range(self.n):
+            for j in range(self.n):
+                if (chrom[i] == j):
                     s += 'Q'
+                else:
+                    s += '+'
+                s += ' '
             s += '\n'
         return s
     
-    def generate_chrom(self):
-        # create a chromosome without Queens
-        chrom = [0] * self.n
-        for i in range(self.n):
-            chrom[i] = [0] * self.n
-            
-        # generate a position for Queens
-        horizontal = random.sample(range(self.n), self.n)
-        vertical = random.sample(range(self.n), self.n)
-        
-        # put the Queens to chromosome
-        for i in range(self.n):
-            chrom[horizontal[i]][vertical[i]] = 1
-            
-        return chrom
-        
+    def generate_chrom(self):            
+        return random.sample(range(self.n), self.n)
             
     # Find a number of attacked pairs of Queens 
     def fitness(self, chrom): 
         res = 0
         for i in range(self.n):
-            for j in range(self.n):
-                if chrom[i][j] == 1:
+            gen = chrom[i]
+            j = i + 1
+            while j < self.n:
+                # Check lines
+                if chrom[j] == gen:
+                    res += 1
+                # Check diagonal
+                if (j - i) == math.fabs(chrom[j] - chrom[i]):
+                    res += 1
+                j += 1
                     
-                    # <-
-                    cur_i = i-1
-                    while (cur_i >= 0):
-                        if chrom[cur_i][j] == 1:
-                            res = res + 1
-                            break
-                        cur_i = cur_i - 1
-                    # ->
-                    cur_i = i+1
-                    while (cur_i < self.n):
-                        try:
-                            if chrom[cur_i][j] == 1:
-                                res = res + 1
-                                break
-                        except IndexError:
-                            print(chrom)
-                        cur_i = cur_i + 1
-                                               
-                    # ^
-                    cur_j = j-1
-                    while (cur_j >= 0):
-                        if chrom[i][cur_j] == 1:
-                            res = res + 1
-                            break
-                        cur_j = cur_j - 1
-                    # -->
-                    cur_j = j+1
-                    while (cur_j < self.n):
-                        if chrom[i][cur_j] == 1:
-                            res = res + 1
-                            break
-                        cur_j = cur_j + 1
-                                            
-                    
-                    # diagonals
-                    cur_i = i-1
-                    cur_j = j+1
-                    while (cur_i >= 0 and cur_j < self.n):
-                        if chrom[cur_i][cur_j] == 1:
-                            res = res + 1
-                            break
-                        cur_i = cur_i - 1
-                        cur_j = cur_j + 1
-                        
-                    cur_i = i+1
-                    cur_j = j+1
-                    while (cur_i < self.n and cur_j < self.n):
-                        if chrom[cur_i][cur_j] == 1:
-                            res = res + 1
-                            break    
-                        cur_i = cur_i + 1
-                        cur_j = cur_j + 1
-                    
-                    cur_i = i+1
-                    cur_j = j-1
-                    while (cur_i < self.n and cur_j >= 0):
-                        if chrom[cur_i][cur_j] == 1:
-                            res = res + 1
-                            break    
-                        cur_i = cur_i + 1
-                        cur_j = cur_j - 1
-                        
-                    cur_i = i-1
-                    cur_j = j-1
-                    while (cur_i >=0 and cur_j >= 0):
-                        if chrom[cur_i][cur_j] == 1:
-                            res = res + 1
-                            break    
-                        cur_i = cur_i - 1
-                        cur_j = cur_j - 1
-                    
-        return 1 - (res)/(self.n * 4)
+        return 1 - (res*2)/(self.n * 4)
         
     def roulette(self):
         # Find the number of hits for each chromosome
@@ -182,17 +108,7 @@ class Solver_8_queens:
                 chrom2 = list.copy(cross_pop[pairs[i+1]])
                 k = random.randint(1, self.n - 1)
                 new_chrom1 = list.copy(chrom1[0:k]) + list.copy(chrom2[k:len(chrom2)])
-                if(self.is_valid(new_chrom1)):
-                    new_population.append(new_chrom1)
-                    
-#                     new_chrom2 = list.copy(chrom1)
-#                     for j in range(self.n):
-#                         for l in range(self.n):
-#                             if (l < k):
-#                                 new_chrom2[j][l] = chrom2[j][l]
-#                     
-#                     if(self.is_valid(new_chrom2)):
-#                         new_population.append(new_chrom2)
+                new_population.append(new_chrom1)
 
         return new_population
     
@@ -204,32 +120,11 @@ class Solver_8_queens:
             #if False:
                 chrom = list.copy(pop[i])
                 r = random.sample(range(self.n), 2)
-                swap1 = list.copy(chrom[r[0]])
-                swap2 = list.copy(chrom[r[1]])
+                swap1 = chrom[r[0]]
+                swap2 = chrom[r[1]]
                 chrom[r[0]] = swap2
                 chrom[r[1]] = swap1
-                if (self.is_valid(chrom)):
-                    new_pop.append(chrom)
-        return new_pop
-
-    # Swap 2 vertical stripes in the desk
-    def mutation_vert(self, pop):
-        new_pop = list()
-        for i in range(len(pop)):
-            if random.random() <= self.mut_prob:
-                
-                chrom = list.copy(pop[i])
-                r = random.sample(range(self.n), 2)
-                first = r[0]
-                second = r[1]
-                for i in range(self.n):
-                    c = chrom[i][first]
-                    chrom[i][first] = chrom[i][second]
-                    chrom[i][second] = c
-                    
-                if (self.is_valid(chrom)):
-                    new_pop.append(chrom)
-                    
+                new_pop.append(chrom)
         return new_pop
           
     # Make a new population based on the old and new chromosomes
@@ -251,11 +146,3 @@ class Solver_8_queens:
             self.population.append(self.generate_chrom())
             self.fitness_list.append(self.fitness(self.population[i]))
             
-    def is_valid(self, chrom):
-        summa = 0
-        for i in range(self.n):
-            summa = summa + sum(chrom[i])
-        if summa < 8:
-            return False
-        else:
-            return True
