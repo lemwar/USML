@@ -1,19 +1,17 @@
-'''
-Created on January 21 2018 
+"""
+Created on January 21 2018
 
-@author: kkostin
-'''
+@author: Kirill Kostin
+"""
 import random
 import math
-from test.test_itertools import gen3
+
 
 class Solver_8_queens:
-    '''
-    classdocs
-    '''
+
     def __init__(self, pop_size=100, cross_prob=0.95, mut_prob=0.25):
         self.n = 8
-        self.nbit = 24
+        self.n_bit = 24
         self.m = 3
         self.pop_size = pop_size
         self.cross_prob = cross_prob
@@ -22,22 +20,20 @@ class Solver_8_queens:
         self.population = list()
         self.fitness_list = list()
         
-        
-    def solve(self, min_fitness=1, max_epochs=100):
+    def solve(self, min_fitness=1, max_epochs=200):
         # Generate the first population
         self.generate_population()
         
         epochs = 0
         max_fitness = max(self.fitness_list)
         max_index = self.fitness_list.index(max(self.fitness_list))
-        #while False:
         while (max_epochs is None or epochs <= max_epochs) and (min_fitness is None or max_fitness < min_fitness):
 
             # Roulette method
             cross_pop = self.roulette()
             
-            # crossingover
-            new_pop = self.crossingover(cross_pop)   
+            # crossing over
+            new_pop = self.crossing_over(cross_pop)
                     
             # form a new population
             self.form_result_population(new_pop)
@@ -54,13 +50,12 @@ class Solver_8_queens:
         
         return max_fitness, epochs, self.visualization(self.population[max_index])
     
-    
-    def visualization(self, chrom2):
-        chrom = self.convertToDec(chrom2)
+    def visualization(self, individual_2):
+        individual = self.convert_to_dec(individual_2)
         s = ''
         for i in range(self.n):
             for j in range(self.n):
-                if (chrom[i] == j):
+                if individual[i] == j:
                     s += 'Q'
                 else:
                     s += '+'
@@ -68,28 +63,25 @@ class Solver_8_queens:
             s += '\n'
         return s
     
-    def generate_chrom(self):      
+    def generate_individual(self):
         s = ''
-        for i in range(self.nbit):
-            s += str(random.randint(0,1))     
+        for i in range(self.n_bit):
+            s += str(random.randint(0, 1))
         return s
             
     # Find a number of attacked pairs of Queens 
-    def fitness(self, chrom2): 
-        chrom = self.convertToDec(chrom2)
+    def fitness(self, individual_2):
+        individual = self.convert_to_dec(individual_2)
         res = 0
         for i in range(self.n):
-            gen = chrom[i]
+            gen = individual[i]
             j = i + 1
             while j < self.n:
                 # Check lines
-                try:
-                    if chrom[j] == gen:
-                        res += 1
-                except IndexError:
-                    print()
+                if individual[j] == gen:
+                    res += 1
                 # Check diagonal
-                if (j - i) == math.fabs(chrom[j] - chrom[i]):
+                if (j - i) == math.fabs(individual[j] - individual[i]):
                     res += 1
                 j += 1
                     
@@ -97,11 +89,13 @@ class Solver_8_queens:
         
     def roulette(self):
         # Find the number of hits for each chromosome
-        roulette = list.copy(self.fitness_list)
-        for i in range(len(self.population)):
-            roulette[i] = round(roulette[i] / sum(self.fitness_list) * len(self.population))
+        roulette = list()
+        sum_fit = sum(self.fitness_list)
+        len_pop = len(self.population)
+        for fit in self.fitness_list:
+            roulette.append(round(fit / sum_fit * len_pop))
         
-        # population for crossingover
+        # population for crossing over
         cross_pop = list()
         for i in range(len(self.population)):
             while roulette[i] > 0:
@@ -110,44 +104,45 @@ class Solver_8_queens:
         return cross_pop
     
     # Divide the desk on 2 part and stick them in a new chromosome
-    def crossingover(self, cross_pop):
+    def crossing_over(self, cross_pop):
         new_population = list()
         pairs = random.sample(range(len(cross_pop)), len(cross_pop))
         for i in range(0, len(cross_pop)-1, 2):
             if random.random() <= self.cross_prob:
-                chrom1 = cross_pop[pairs[i]]
-                chrom2 = cross_pop[pairs[i+1]]
-                k = random.randint(1, len(chrom1) - 1)
-                new_chrom1 = chrom1[0:k] + chrom2[k:len(chrom2)]
-                new_population.append(new_chrom1)
+                individual_1 = cross_pop[pairs[i]]
+                individual_2 = cross_pop[pairs[i+1]]
+                k = random.randint(1, len(individual_1) - 1)
+                new_individual_1 = individual_1[0:k] + individual_2[k:self.n_bit]
+                new_population.append(new_individual_1)
+
+                new_individual_2 = individual_2[0:k] + individual_1[k:self.n_bit]
+                new_population.append(new_individual_2)
 
         return new_population
     
     # Swap 2 horizontal stripes in the desk
     def mutation(self, pop):
         new_pop = list()
-        for i in range(len(pop)):
+        for individual in pop:
             if random.random() <= self.mut_prob:
-            #if False:
-                chrom = pop[i]
-                r = random.randint(0, self.nbit - 1)
-                gen = chrom[r]
+                r = random.randint(0, self.n_bit - 1)
+                gen = individual[r]
                 new_gen = '0'
                 if gen == '0':
                     new_gen = '1'
-                new_chrom = chrom[0 : r] + new_gen + chrom[r + 1 : len(chrom)]
-                
-                new_pop.append(new_chrom)
+                new_individual = individual[0:r] + new_gen + individual[r + 1:self.n_bit]
+                new_pop.append(new_individual)
+
         return new_pop
           
     # Make a new population based on the old and new chromosomes
     def form_result_population(self, new_pop):
-        for i in range(len(self.population)):
-            new_pop.append(self.population[i])
+        for individual in self.population:
+            new_pop.append(individual)
+
         new_fitness_list = list()
-        
-        for i in range(len(new_pop)):
-            new_fitness_list.append(self.fitness(new_pop[i]))    
+        for individual in new_pop:
+            new_fitness_list.append(self.fitness(individual))
 
         for i in range(len(self.population)):
             index = new_fitness_list.index(max(new_fitness_list))
@@ -156,24 +151,12 @@ class Solver_8_queens:
             
     def generate_population(self):
         for i in range(self.pop_size):
-            self.population.append(self.generate_chrom())
+            self.population.append(self.generate_individual())
             self.fitness_list.append(self.fitness(self.population[i]))
             
-    def convertToBin(self, chrom):
-        s=''
-        for i in range(len(chrom)):
-            gen = str(bin(chrom[i]))[2:]
-            while len(gen) < 3:
-                gen = '0' + gen
-            s += gen
-        return s
-            
-    def convertToDec(self, s):
-        chrom = list()
+    def convert_to_dec(self, s):
+        individual = list()
         for i in range(0, len(s), self.m):
             gen = int(s[i:i+self.m], 2)
-            chrom.append(gen)
-            
-        return chrom
-            
-            
+            individual.append(gen)
+        return individual
