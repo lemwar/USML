@@ -9,7 +9,7 @@ import math
 
 class Solver_8_queens:
 
-    def __init__(self, pop_size=100, cross_prob=0.95, mut_prob=0.25):
+    def __init__(self, pop_size=100, cross_prob=0.95, mut_prob=0.25, is_rang=False, is_multi_cross=False):
         self.n = 8
         self.n_bit = 24
         self.m = 3
@@ -19,6 +19,9 @@ class Solver_8_queens:
         
         self.population = list()
         self.fitness_list = list()
+
+        self.is_rang = is_rang
+        self.is_multi = is_multi_cross
         
     def solve(self, min_fitness=1, max_epochs=200):
         # Generate the first population
@@ -29,11 +32,15 @@ class Solver_8_queens:
         max_index = self.fitness_list.index(max(self.fitness_list))
         while (max_epochs is None or epochs <= max_epochs) and (min_fitness is None or max_fitness < min_fitness):
 
-            # Roulette method
-            cross_pop = self.roulette()
+            if self.is_rang:
+                # Rang method
+                cross_pop = self.rang()
+            else:
+                # Roulette method
+                cross_pop = self.roulette()
             
             # crossing over
-            new_pop = self.crossing_over(cross_pop)
+            new_pop = self.crossing_over(cross_pop, self.is_multi)
                     
             # form a new population
             self.form_result_population(new_pop)
@@ -102,21 +109,50 @@ class Solver_8_queens:
                 cross_pop.append(self.population[i])
                 roulette[i] = roulette[i] - 1
         return cross_pop
+
+    def rang(self):
+        # Find the number of hits for each chromosome
+        rang = list()
+        sum_fit = sum(self.fitness_list)
+        len_pop = len(self.population)
+        self.fitness_list.sort(reverse=True)
+        a = random.random() + 1
+        b = 2 - a
+        for i in range(len(self.fitness_list)):
+            res = (1/len_pop) * (a-(a-b)*(i/(len_pop - 1)))
+            rang.append(round(res * len_pop))
+
+        # population for crossing over
+        cross_pop = list()
+        for i in range(len(self.population)):
+            while rang[i] > 0:
+                cross_pop.append(self.population[i])
+                rang[i] = rang[i] - 1
+        return cross_pop
     
     # Divide the desk on 2 part and stick them in a new chromosome
-    def crossing_over(self, cross_pop):
+    def crossing_over(self, cross_pop, is_multi=False):
         new_population = list()
         pairs = random.sample(range(len(cross_pop)), len(cross_pop))
         for i in range(0, len(cross_pop)-1, 2):
             if random.random() <= self.cross_prob:
                 individual_1 = cross_pop[pairs[i]]
                 individual_2 = cross_pop[pairs[i+1]]
-                k = random.randint(1, len(individual_1) - 1)
-                new_individual_1 = individual_1[0:k] + individual_2[k:self.n_bit]
-                new_population.append(new_individual_1)
+                if is_multi:
+                    k1 = random.randint(1, len(individual_1) - 2)
+                    k2 = random.randint(k1 + 1, len(individual_1) - 1)
+                    new_individual_1 = individual_1[0:k1] + individual_2[k1:k2] + individual_1[k2:self.n_bit]
+                    new_population.append(new_individual_1)
 
-                new_individual_2 = individual_2[0:k] + individual_1[k:self.n_bit]
-                new_population.append(new_individual_2)
+                    new_individual_2 = individual_2[0:k1] + individual_1[k1:k2] + individual_2[k2:self.n_bit]
+                    new_population.append(new_individual_2)
+                else:
+                    k1 = random.randint(1, len(individual_1) - 2)
+                    new_individual_1 = individual_1[0:k1] + individual_2[k1:self.n_bit]
+                    new_population.append(new_individual_1)
+
+                    new_individual_2 = individual_2[0:k1] + individual_1[k1:self.n_bit]
+                    new_population.append(new_individual_2)
 
         return new_population
     
